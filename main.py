@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, ModelRetry
+from pydantic_ai import Agent
 from typing import List
 from dotenv import load_dotenv
 

@@ -5,6 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "dotenv>=0.9.9",
     "pillow>=11.3.0",
+    "pydantic-ai>=0.4.9",
     "typer>=0.16.0",
 ]
