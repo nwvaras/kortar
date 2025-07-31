@@ -23,7 +23,7 @@ class TaskType(str, Enum):
     TRIM = "trim"
     COMPOSITE = "composite"
     ZOOM = "zoom"
-
+    COMPRESS = "compress"
 
 class Task(BaseModel):
     """

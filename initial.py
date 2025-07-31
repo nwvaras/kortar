@@ -14,7 +14,6 @@ logger = get_logger("kortar.initial")
 # Import all tools to register them with main_agent
 from tools.analysis import initial_video_analysis
 from tools.content_analysis import analyze_video
-from tools.doctor import doctor_command
 
 
 # Initialize rich console for better CLI experience
@@ -91,16 +90,6 @@ def edit_video(
 
     asyncio.run(_process_edit_request(full_request, dry_run))
 
-
-@app.command("doctor")
-def doctor_command_cli(
-    intent: str = typer.Argument(..., help="Original intent of the command"),
-    failing_command: str = typer.Argument(..., help="The FFmpeg command that failed"),
-    error: str = typer.Option("", "--error", "-e", help="Error message (optional)"),
-):
-    """🩺 Fix a problematic FFmpeg command"""
-
-    asyncio.run(_doctor_fix(intent, failing_command, error))
 
 
 async def _interactive_session():
@@ -317,31 +306,6 @@ async def _process_edit_request(request: str, dry_run: bool):
 
     except Exception as e:
         console.print(f"[red]❌ Edit request failed: {str(e)}[/red]")
-
-
-async def _doctor_fix(intent: str, failing_command: str, error: str):
-    """Internal doctor fix handler"""
-    console.print("[blue]🩺 Analyzing and fixing command...[/blue]")
-
-    try:
-        with progress_manager.progress_context():
-            task = add_task("Diagnosing issues...")
-            fixed_command = await doctor_command(None, intent, failing_command, error)
-
-        console.print("\n[bold red]❌ Original Command:[/bold red]")
-        console.print(f"[dim]{'─' * 60}[/dim]")
-        # Print commands with no formatting for easy copying
-        print(failing_command)
-        console.print(f"[dim]{'─' * 60}[/dim]")
-
-        console.print("\n[bold green]✅ Fixed Command (copy-ready):[/bold green]")
-        console.print(f"[dim]{'─' * 60}[/dim]")
-        print(fixed_command)
-        console.print(f"[dim]{'─' * 60}[/dim]")
-
-    except Exception as e:
-        console.print(f"[red]❌ Doctor fix failed: {str(e)}[/red]")
-
 
 async def _run_ffmpeg_command(command: str) -> bool:
     """Execute an FFmpeg command and return success status"""

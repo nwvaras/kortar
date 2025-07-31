@@ -13,9 +13,9 @@ from .text import apply_text_filter
 from .sync import apply_sync_filter
 
 # Utility tools
-from .doctor import doctor_command
 from .user_input import ask_user_for_clarification
 from .transcript import transcript_video
+from .compress import apply_compression
 
 __all__ = [
     "initial_video_analysis",
@@ -26,7 +26,7 @@ __all__ = [
     "apply_text_filter",
     "apply_sync_filter",
     "detect_object_bounds",
-    "doctor_command",
     "ask_user_for_clarification",
     "transcript_video",
+    "apply_compression",
 ]

@@ -50,11 +50,11 @@ main_agent = Agent(
     - apply_sync_filter: Synchronize audio/video
     - detect_object_bounds: Extract frame at timestamp and detect object bounding coordinates using AI vision for precise video cropping
     - transcript_video: Create SRT subtitle files from video using Deepgram transcription. Use this tool first to generate subtitles, then use apply_text_filter to add them to the video.
+    - apply_compression: Apply compression to the video. Use this for any type of compression request.
 
     Every tool needs a request, and the request should have all the information to apply the filter.
     Like the time interval and other information needed.
     
-    If a command fails or seems problematic, use doctor_command to fix technical issues.
 
     ## Filter Order Guidelines:
     0. Check if the video path is provided. If not, ask the user for the video path using the provided tool.
