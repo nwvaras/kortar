@@ -230,7 +230,7 @@ async def _interactive_session():
 
                 # Execute the plan
                 try:
-                    history = await _execute_plan(plan, history)
+                    await _execute_plan(plan, history)
                 except Exception as e:
                     console.print(f"[red]❌ Plan execution failed: {str(e)}[/red]")
                     console.print(
@@ -363,7 +363,7 @@ async def _execute_plan(plan: ExecutionPlan, history: list) -> list:
         # Create task request with current context
         task_request = f"""
 Task: {task.description}
-Input file: {current_video_path}
+Inputs file: {task.inputs}
 Expected output: {task.output_file_path or f"task_{i}_output.mp4"}
 Task type: {task.task_type.value}
 """

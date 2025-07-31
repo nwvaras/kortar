@@ -2,6 +2,7 @@ import httpx
 from pathlib import Path
 from pydantic_ai import Agent, BinaryContent, RunContext
 from main import main_agent
+from planner import planner_agent
 from common.logger import get_logger
 
 logger = get_logger("kortar.tools.content_analysis")
@@ -23,6 +24,17 @@ async def analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
     - Low activity periods
     - Detect elements in the video
     """
+    return await wrapped_analyze_video(ctx, video_path, query)
+
+@planner_agent.tool
+async def analyze_video_plan(ctx: RunContext, video_path: str, query: str) -> str:
+    """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
+    This is used to plan the video editing process.
+    Only use it when the task will need to know the content of the video.
+    """
+    return await wrapped_analyze_video(ctx, video_path, query)
+
+async def wrapped_analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
     logger.info("Starting video content analysis", video_path=video_path, query=query)
 
 
