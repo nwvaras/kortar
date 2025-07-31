@@ -1,10 +1,12 @@
 from pydantic_ai import Agent, RunContext
 from main import main_agent
+from common.logger import get_logger
 
+logger = get_logger("kortar.tools.transition")
 
 # Specialized transition agent
 transition_agent = Agent(
-    'openai:gpt-4o-mini',
+    "openai:gpt-4o-mini",
     output_type=str,
     system_prompt="""
     You are a video transition specialist. You modify FFmpeg commands to add transitions, concatenations, and video arrangements.
@@ -34,21 +36,21 @@ transition_agent = Agent(
     
     Always preserve existing filters and properly chain them. Return only the modified FFmpeg command.
     If you have different width/height inputs, keep the same aspect ratio. Even if this means adding more black bars.
-    """
+    """,
 )
 
 
 @main_agent.tool
-async def apply_transition_filter(ctx: RunContext, current_command: str, request: str) -> str:
+async def apply_transition_filter(
+    ctx: RunContext, current_command: str, request: str
+) -> str:
     """Apply transition effects to the current FFmpeg command. The request should say if the video has or doesn't have audio
     Send the aspect ratio of the parts of the video, if you want to concatenate them."""
-    print(f"[LOG] TRANSITION - Request: {request}")
-    print(f"[LOG] TRANSITION - Current command: {current_command}")
-    
-    result = await transition_agent.run([
-        f"Current command: {current_command}",
-        f"Transition request: {request}"
-    ])
-    
-    print(f"[LOG] TRANSITION - Result: {result.output}")
+    logger.info("Processing transition filter request", request=request, current_command=current_command)
+
+    result = await transition_agent.run(
+        [f"Current command: {current_command}", f"Transition request: {request}"]
+    )
+
+    logger.info("Transition filter result generated", result=result.output)
     return result.output

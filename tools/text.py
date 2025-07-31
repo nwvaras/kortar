@@ -1,10 +1,12 @@
 from pydantic_ai import Agent, RunContext
 from main import main_agent
+from common.logger import get_logger
 
+logger = get_logger("kortar.tools.text")
 
 # Specialized text agent
 text_agent = Agent(
-    'openai:gpt-4o-mini',
+    "openai:gpt-4o-mini",
     output_type=str,
     system_prompt="""
     You are a text overlay specialist. You modify FFmpeg commands to add text overlays, captions, and timed text.
@@ -22,20 +24,18 @@ text_agent = Agent(
     - Subtitle style: [0:v]drawtext=text='Subtitle':x=(w-text_w)/2:y=h-100:fontsize=24:box=1:boxcolor=black@0.5[out]
     
     Always preserve existing filters and properly chain them. Return only the modified FFmpeg command.
-    """
+    """,
 )
 
 
 @main_agent.tool
 async def apply_text_filter(ctx: RunContext, current_command: str, request: str) -> str:
     """Apply text overlays to the current FFmpeg command"""
-    print(f"[LOG] TEXT - Request: {request}")
-    print(f"[LOG] TEXT - Current command: {current_command}")
-    
-    result = await text_agent.run([
-        f"Current command: {current_command}",
-        f"Text request: {request}"
-    ])
-    
-    print(f"[LOG] TEXT - Result: {result.output}")
+    logger.info("Processing text filter request", request=request, current_command=current_command)
+
+    result = await text_agent.run(
+        [f"Current command: {current_command}", f"Text request: {request}"]
+    )
+
+    logger.info("Text filter result generated", result=result.output)
     return result.output

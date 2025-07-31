@@ -15,16 +15,18 @@ from .sync import apply_sync_filter
 # Utility tools
 from .doctor import doctor_command
 from .user_input import ask_user_for_clarification
+from .transcript import transcript_video
 
 __all__ = [
-    'initial_video_analysis',
-    'analyze_video',
-    'apply_overlay_filter',
-    'apply_audio_filter',
-    'apply_transition_filter',
-    'apply_text_filter',
-    'apply_sync_filter',
-    'detect_object_bounds',
-    'doctor_command',
-    'ask_user_for_clarification'
+    "initial_video_analysis",
+    "analyze_video",
+    "apply_overlay_filter",
+    "apply_audio_filter",
+    "apply_transition_filter",
+    "apply_text_filter",
+    "apply_sync_filter",
+    "detect_object_bounds",
+    "doctor_command",
+    "ask_user_for_clarification",
+    "transcript_video",
 ]

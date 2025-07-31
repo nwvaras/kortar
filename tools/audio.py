@@ -1,10 +1,12 @@
 from pydantic_ai import Agent, RunContext
 from main import main_agent
+from common.logger import get_logger
 
+logger = get_logger("kortar.tools.audio")
 
 # Specialized audio agent
 audio_agent = Agent(
-    'openai:gpt-4o-mini',
+    "openai:gpt-4o-mini",
     output_type=str,
     system_prompt="""
     You are an audio processing specialist. You modify FFmpeg commands to add audio effects like mixing, fading, and filtering.
@@ -22,20 +24,20 @@ audio_agent = Agent(
     - Volume adjustment: [0:a]volume=0.5[out]
     
     Always preserve existing filters and properly chain them. Return only the modified FFmpeg command.
-    """
+    """,
 )
 
 
 @main_agent.tool
-async def apply_audio_filter(ctx: RunContext, current_command: str, request: str) -> str:
+async def apply_audio_filter(
+    ctx: RunContext, current_command: str, request: str
+) -> str:
     """Apply audio effects to the current FFmpeg command"""
-    print(f"[LOG] AUDIO - Request: {request}")
-    print(f"[LOG] AUDIO - Current command: {current_command}")
-    
-    result = await audio_agent.run([
-        f"Current command: {current_command}",
-        f"Audio request: {request}"
-    ])
-    
-    print(f"[LOG] AUDIO - Result: {result.output}")
+    logger.info("Processing audio filter request", request=request, current_command=current_command)
+
+    result = await audio_agent.run(
+        [f"Current command: {current_command}", f"Audio request: {request}"]
+    )
+
+    logger.info("Audio filter result generated", result=result.output)
     return result.output

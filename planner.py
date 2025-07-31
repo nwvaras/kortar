@@ -6,13 +6,14 @@ from typing import List, Optional
 from enum import Enum
 from dotenv import load_dotenv
 
+
 # Load environment variables
 load_dotenv()
 
 
-
 class TaskType(str, Enum):
     """Type of video editing task"""
+
     AUDIO_PROCESSING = "audio_processing"
     OVERLAY = "overlay"
     TEXT = "text"
@@ -29,17 +30,29 @@ class Task(BaseModel):
     Represents a single video editing task in the execution pipeline.
     Each task is atomic and can be executed independently with the main agent.
     """
-    id: UUID = Field(description="Unique identifier for the task",default_factory=lambda: uuid4().hex)
+
+    id: UUID = Field(
+        description="Unique identifier for the task",
+        default_factory=lambda: uuid4().hex,
+    )
     name: str = Field(description="Short, descriptive name of the task")
-    description: str = Field(description="Simple, clear description of what this task does")
+    description: str = Field(
+        description="Simple, clear description of what this task does"
+    )
     task_type: TaskType = Field(description="Category of video editing operation")
-    
+
     # Dependencies and flow
-    inputs: List[str] = Field(default_factory=list, description="List of file paths that this task depends on")
-    
+    inputs: List[str] = Field(
+        default_factory=list, description="List of file paths that this task depends on"
+    )
+
     # Execution details
-    time_interval: Optional[str] = Field(default=None, description="Time interval if applicable (e.g., '00:10-00:20')")
-    output_file_path: Optional[str] = Field(default=None, description="Path to the output file")
+    time_interval: Optional[str] = Field(
+        default=None, description="Time interval if applicable (e.g., '00:10-00:20')"
+    )
+    output_file_path: Optional[str] = Field(
+        default=None, description="Path to the output file"
+    )
 
 
 class ExecutionPlan(BaseModel):
@@ -47,26 +60,35 @@ class ExecutionPlan(BaseModel):
     Complete execution plan for a video editing workflow.
     Contains ordered tasks and metadata about the overall operation.
     """
-    plan_id: str = Field(description="Unique identifier for this execution plan",default_factory=lambda: uuid4().hex)
-    description: str = Field(description="High-level description of the video editing workflow")
+
+    plan_id: str = Field(
+        description="Unique identifier for this execution plan",
+        default_factory=lambda: uuid4().hex,
+    )
+    description: str = Field(
+        description="High-level description of the video editing workflow"
+    )
     input_video: str = Field(description="Path to the input video file")
     output_video: str = Field(description="Expected path for the final output video")
-    
+
     tasks: List[Task] = Field(description="List of tasks to execute in order")
-    
+
     # Execution tracking
-    current_task_index: int = Field(default=0, description="Index of currently executing task")
+    current_task_index: int = Field(
+        default=0, description="Index of currently executing task"
+    )
 
 
-@dataclass 
+@dataclass
 class PlannerDeps:
     """Dependencies for the planner agent"""
+
     user_request: str
 
 
 # Planner agent for task decomposition
 planner_agent = Agent(
-    'openai:gpt-4.1',
+    "openai:gpt-4.1",
     output_type=ExecutionPlan,
     system_prompt="""
     You are an expert video editing workflow planner. Your job is to analyze user requests for video editing and break them down into clear, goal-oriented tasks that define WHAT needs to be accomplished, not HOW to accomplish it.
@@ -169,19 +191,22 @@ planner_agent = Agent(
     Generate a comprehensive execution plan with properly ordered, goal-focused tasks that clearly define what needs to be accomplished to meet the user's video editing objectives. 
     
     **DEFAULT APPROACH**: Create minimal, focused workflows that only include the specific transformations requested by the user. Avoid adding quality improvements, smoothing operations, or enhancements unless explicitly asked for.
+    
+    Notes:
+    - Create subtitles, and add transcribe + add subtitles to the video are one single task.
     """,
-    retries=2
+    retries=2,
 )
 
 
-async def plan_video_editing(user_request: str, video_path: Optional[str] = None) -> ExecutionPlan:
+async def plan_video_editing(user_request: str) -> ExecutionPlan:
     """
     Plan a video editing workflow based on user request.
-    
+
     Args:
         user_request: Description of the video editing task
         video_path: Path to the input video (optional, can be determined later)
-    
+
     Returns:
         ExecutionPlan with ordered tasks for the video editing workflow
     """
@@ -193,40 +218,42 @@ async def plan_video_editing(user_request: str, video_path: Optional[str] = None
 def print_execution_plan(plan: ExecutionPlan) -> None:
     """
     Pretty print an execution plan for review.
-    
+
     Args:
         plan: The ExecutionPlan to display
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"EXECUTION PLAN: {plan.plan_id}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Description: {plan.description}")
     print(f"Input Video: {plan.input_video}")
     print(f"Output Video: {plan.output_video}")
     print(f"Total Tasks: {len(plan.tasks)}")
     print(f"\n{'Task Breakdown:'}")
-    print(f"{'-'*60}")
-    
+    print(f"{'-' * 60}")
+
     for i, task in enumerate(plan.tasks, 1):
         print(f"\n{i}. {task.name}")
         print(f"   Type: {task.task_type.value}")
         print(f"   Description: {task.description}")
         print(f"   Inputs: {', '.join(task.inputs) if task.inputs else 'None'}")
         print(f"   Output File Path: {task.output_file_path}")
-    print(f"\n{'='*60}\n")
+    print(f"\n{'=' * 60}\n")
 
 
 # Example usage function
 async def example_planning():
     """Example of how to use the planner"""
     user_request = "Make the video start when the red microphone appear. Then make a zoom to the cat portrait when the it appears until the end of the video. Video is video.webm"
-    
+
     plan = await plan_video_editing(user_request)
     print_execution_plan(plan)
-    
+    for task in plan.tasks:
+        pass
     return plan
 
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(example_planning())

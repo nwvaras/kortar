@@ -3,14 +3,19 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 from typing import List
 from dotenv import load_dotenv
+from common.logger import get_logger
+
+logger = get_logger("kortar.main")
 
 # Load environment variables from .env file
 load_dotenv()
-print("[LOG] Environment variables loaded")
+logger.info("Environment variables loaded")
+
 
 @dataclass
 class VideoDeps:
     video_path: str
+
 
 class FFmpegCommand(BaseModel):
     command: str
@@ -20,7 +25,7 @@ class FFmpegCommand(BaseModel):
 
 # Main FFmpeg agent with OpenAI 4o
 main_agent = Agent(
-    'openai:gpt-4.1',
+    "openai:gpt-4.1",
     output_type=FFmpegCommand,
     system_prompt="""
     You are an expert FFmpeg video editing orchestrator. Your job is to plan and execute complex video editing workflows by coordinating specialized filter agents.
@@ -34,7 +39,7 @@ main_agent = Agent(
     5. Apply filters in the correct logical order
 
     ## Available Tools:
-    - ask_user_for_clarification: Ask the user for missing information or clarification when requests are ambiguous
+    - ask_user_for_clarification: Ask the user for missing information or clarification when requests are ambiguous.
     - initial_video_analysis: Run ffprobe to get technical video characteristics (duration, resolution, fps, codecs, audio info)
     - analyze_video: Analyze video content based on specific queries using Gemini vision. Don't ask for pixels or positions
     - get_width_height: Get exact video dimensions for precise positioning, cropping, overlay placement, and aspect ratio calculations
@@ -44,6 +49,7 @@ main_agent = Agent(
     - apply_text_filter: Add text overlays and timed text
     - apply_sync_filter: Synchronize audio/video
     - detect_object_bounds: Extract frame at timestamp and detect object bounding coordinates using AI vision for precise video cropping
+    - transcript_video: Create SRT subtitle files from video using Deepgram transcription. Use this tool first to generate subtitles, then use apply_text_filter to add them to the video.
 
     Every tool needs a request, and the request should have all the information to apply the filter.
     Like the time interval and other information needed.
@@ -77,6 +83,7 @@ main_agent = Agent(
     ## Notes:
     - When cropping, try to always be conservative with the crop. It's better to have a little bit of unwanted content than to have a cropped video that is not what the user asked for.
     - Analyze_video will only show you an aproximate position of the object.
+    - For adding subtitles to videos: First use transcript_video to generate the SRT file, then use apply_text_filter to overlay the subtitles onto the video.
     
     ## CRITICAL: H.264 Codec Requirements
     - The libx264 codec requires BOTH width and height to be divisible by 2 (even numbers)
@@ -99,7 +106,5 @@ main_agent = Agent(
     - The final command shouldn't have the -f null flag.
     
     """,
-    retries=3
+    retries=3,
 )
-
-
