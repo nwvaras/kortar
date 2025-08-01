@@ -5,7 +5,6 @@ Progress Manager for sharing Rich Progress instances across the application.
 from contextlib import contextmanager
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 from typing import Generator, Optional
-import threading
 
 from rich.prompt import Prompt
 
@@ -15,7 +14,6 @@ class ProgressManager:
     
     def __init__(self):
         self._progress: Optional[Progress] = None
-        self._lock = threading.Lock()
     
     @contextmanager
     def progress_context(self) -> Generator[Progress, None, None]:
@@ -28,22 +26,20 @@ class ProgressManager:
                 task = progress.add_task("Main task", total=100)
                 # Other modules can access it via get_progress()
         """
-        with self._lock:
-            self._progress = Progress(
-                SpinnerColumn(),
-                TextColumn("[bold blue]{task.description}"),
-                BarColumn(complete_style="green", finished_style="green"),
-                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                TimeRemainingColumn(),
-                expand=True
-            )
+        self._progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(complete_style="green", finished_style="green"),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            expand=True
+        )
             
         try:
             with self._progress:
                 yield self._progress
         finally:
-            with self._lock:
-                self._progress = None
+            self._progress = None
     
     def get_progress(self) -> Optional[Progress]:
         """
@@ -52,8 +48,7 @@ class ProgressManager:
         Returns:
             The current Progress instance if one is active, None otherwise.
         """
-        with self._lock:
-            return self._progress
+        return self._progress
     
     def add_task(self, description: str, total: Optional[int] = None, **kwargs) -> Optional[int]:
         """
@@ -127,6 +122,8 @@ class ProgressManager:
         progress = self.get_progress()
         if progress:
             progress.start()
+            return True
+        return False
 
 
 # Global instance
@@ -154,7 +151,10 @@ def remove_task(task_id: Optional[int]) -> bool:
 
 def prompt_user(question: str) -> str:
     """Prompt the user for input."""
-    progress_manager.stop_progress()
-    result = Prompt.ask(question)
-    progress_manager.start_progress()
-    return result
+    return Prompt.ask(question)
+
+
+def confirm_user(question: str, default: bool = True) -> bool:
+    """Confirm with the user."""
+    from rich.prompt import Confirm
+    return Confirm.ask(question, default=default)

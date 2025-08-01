@@ -2,6 +2,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from main import main_agent
 from common.logger import get_logger
+from common.validators import validate_ffmpeg_filter_complex
 
 logger = get_logger("kortar.tools.overlay")
 
@@ -41,21 +42,21 @@ Overlay:
 Zoompan:
 zoompan=z='if(between(on,start,end),min(1+((on-start)/duration),max),1)':d=<frames>:fps=<fps>:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':enable='between(on,start,end)'
 
-Example of chromatic abberation:
-
-ffmpeg -y -i input.mp4
--filter_complex
-"[0:v]split=3;lutrgb=g=0:b=0;lutrgb=r=0:b=0;lutrgb=r=0:
-g=0;crop=iw-4:ih:4:0, pad=iw+4:ih:0:0;crop=iw-4:ih:0:0,
-pad=iw+4:ih:4:0;crop=iw:ih-4:0:4,
-pad=iw:ih+4:0:0;blend=all_mode='addition';blend=all_mod
-e='addition'" -map "" -c:v libx264 -crf 18 -preset
-veryfast output.mp4
-
-
 Return only the full modified FFmpeg command.
 """
 )
+
+
+# Example of chromatic abberation:
+
+# ffmpeg -y -i input.mp4
+# -filter_complex
+# "[0:v]split=3;lutrgb=g=0:b=0;lutrgb=r=0:b=0;lutrgb=r=0:
+# g=0;crop=iw-4:ih:4:0, pad=iw+4:ih:0:0;crop=iw-4:ih:0:0,
+# pad=iw+4:ih:4:0;crop=iw:ih-4:0:4,
+# pad=iw:ih+4:0:0;blend=all_mode='addition';blend=all_mod
+# e='addition'" -map "" -c:v libx264 -crf 18 -preset
+# veryfast output.mp4
 
 
 
@@ -83,103 +84,10 @@ async def apply_overlay_filter(
 
 @overlay_agent.output_validator
 async def validate_ffmpeg_command(ctx: RunContext, output: str) -> str:
-    """Validate the final FFmpeg command"""
-    import subprocess
-    import re
-
-    logger.info("Validating FFmpeg command", command=output)
-
-    if not output.strip().lower().startswith("ffmpeg"):
-        raise ModelRetry(
-            'The command must start with "ffmpeg". Please generate a valid FFmpeg command.'
-        )
-
-    # Check for missing input file after -i flag
-    if re.search(r"-i\s+(-f\s+null|$|\s+-)", output):
-        raise ModelRetry(
-            "Missing input file after -i flag. Please specify a valid input file path."
-        )
-
-    # Add -y flag if not present
-    if " -y " not in output and not output.startswith("ffmpeg -y"):
-        output = output.replace("ffmpeg ", "ffmpeg -y ", 1)
-
-    try:
-        # Create test command with null output to validate syntax and execution
-        test_command = output
-
-        # Replace output file with null output for testing
-        # Parse FFmpeg command to find the actual output file (typically the last argument)
-        import shlex
-
-        try:
-            # Split command into tokens while preserving quoted arguments
-            tokens = shlex.split(test_command)
-
-            # Find the last token that looks like a filename (not a flag, not /dev/null)
-            output_file_index = None
-            for i in range(len(tokens) - 1, -1, -1):
-                token = tokens[i]
-                # Skip flags and /dev/null
-                if token.startswith("-") or token == "/dev/null":
-                    continue
-                # Skip if it's likely a flag value (previous token is a flag)
-                if (
-                    i > 0
-                    and tokens[i - 1].startswith("-")
-                    and tokens[i - 1] not in ["-map", "-i"]
-                ):
-                    continue
-                # This looks like a filename - should be the output file
-                output_file_index = i
-                break
-
-            if output_file_index is not None:
-                # Replace the output file with null output
-                tokens[output_file_index:] = ["-f", "null", "-"]
-                test_command = " ".join(shlex.quote(token) for token in tokens)
-            else:
-                # Fallback: just append null output
-                test_command += " -f null -"
-
-        except (ValueError, IndexError):
-            # Fallback for complex quoting - just append null output
-            test_command += " -f null -"
-
-        # Ensure we have null output if no output file was found
-        if "-f null" not in test_command:
-            test_command += " -f null -"
-
-        logger.debug("Testing command with null output", test_command=test_command)
-
-        # Execute the test command to validate it works
-        result = subprocess.run(
-            test_command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=10,  # 10 second timeout for validation
-        )
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip()
-            logger.error("FFmpeg command validation failed", error_message=error_msg)
-            raise ModelRetry(
-                f"FFmpeg command validation failed with error: {error_msg}"
-            )
-
-        # Basic syntax validation
-        if "-filter_complex":
-            raise ModelRetry(
-                "Command should use -filter_complex for the specified filters."
-            )
-
-        logger.info("Command validation successful", message="FFmpeg executed without errors")
-        return output
-
-    except subprocess.TimeoutExpired:
-        logger.error("Command validation timed out")
-        return output
-    except Exception as e:
-        logger.error("Command validation failed", error=str(e))
-        raise ModelRetry(f"Command validation error: {str(e)}") from e
+    """Validate the final FFmpeg command using the common validator"""
+    is_valid, error_message, cleaned_command = validate_ffmpeg_filter_complex(output, timeout=10)
+    
+    if not is_valid:
+        raise ModelRetry(error_message)
+    
+    return cleaned_command

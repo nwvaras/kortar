@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 from common.logger import get_logger
-from common.progress import progress_manager, add_task, update_task
+from common.progress import progress_manager, add_task, update_task, confirm_user
 
 logger = get_logger("kortar.initial")
 
@@ -103,6 +103,7 @@ async def _interactive_session():
     )
 
     history = []
+    plan_history = []
     while True:
         try:
             # Support multiline input
@@ -120,6 +121,7 @@ async def _interactive_session():
                     return
                 elif first_line.lower() == "clear":
                     history = []
+                    plan_history = []
                     console.print("[green]✨ Chat history cleared![/green]")
                     continue
                 elif first_line.lower() in ["help", "?"]:
@@ -187,7 +189,9 @@ async def _interactive_session():
                 task = add_task("Creating execution plan...")
 
                 try:
-                    plan = await plan_video_editing(user_input)
+                    plan_response = await plan_video_editing(user_input,plan_history)
+                    plan = plan_response.output
+                    plan_history = plan_response.all_messages()
                     update_task(task, description="Plan created!")
                 except Exception as e:
                     console.print(f"[red]❌ Failed to create plan: {str(e)}[/red]")
@@ -205,7 +209,7 @@ async def _interactive_session():
                     _display_result(result.output)
 
                     # Ask user if they want to execute this command
-                    execute_command = Confirm.ask(
+                    execute_command = confirm_user(
                         "\n[bold yellow]Execute this FFmpeg command?[/bold yellow]",
                         default=True,
                     )
@@ -222,7 +226,7 @@ async def _interactive_session():
                 print_execution_plan(plan)
 
                 # Ask user for confirmation
-                if not Confirm.ask(
+                if not confirm_user(
                     "\n[bold blue]Execute this plan?[/bold blue]", default=True
                 ):
                     console.print("[yellow]Plan cancelled by user.[/yellow]")
@@ -258,7 +262,7 @@ async def _analyze_video(video_path: str, technical: bool, content: bool, query:
             console.print("\n[bold blue]🔍 Technical Analysis:[/bold blue]")
             console.print(f"[dim]{'─' * 60}[/dim]")
             # Print analysis with no formatting for easy copying
-            print(tech_result)
+            console.print(tech_result, highlight=False)
             console.print(f"[dim]{'─' * 60}[/dim]")
 
         if content:
@@ -276,7 +280,7 @@ async def _analyze_video(video_path: str, technical: bool, content: bool, query:
             console.print("\n[bold green]🎯 Content Analysis:[/bold green]")
             console.print(f"[dim]{'─' * 60}[/dim]")
             # Print analysis with no formatting for easy copying
-            print(content_result)
+            console.print(content_result, highlight=False)
             console.print(f"[dim]{'─' * 60}[/dim]")
 
     except Exception as e:
@@ -297,7 +301,7 @@ async def _process_edit_request(request: str, dry_run: bool):
         if dry_run:
             console.print("[yellow]📋 Dry run mode - command not executed[/yellow]")
         else:
-            if Confirm.ask("Execute this command?"):
+            if confirm_user("Execute this command?"):
                 console.print("[green]🚀 Executing command...[/green]")
                 # Here you could add actual command execution
                 console.print(
@@ -373,19 +377,14 @@ Task type: {task.task_type.value}
 
         console.print(f"[dim]Processing task {i}...[/dim]")
 
-        with progress_manager.progress_context():
-            progress_task = add_task(f"Executing task {i}...")
-
-            result = await main_agent.run(task_request, message_history=history)
-            history = result.all_messages()
-
-            update_task(progress_task, description=f"Task {i} complete!")
+        result = await main_agent.run(task_request, message_history=history)
+        history = result.all_messages()
 
         # Display task result
         _display_result(result.output)
 
         # Ask user if they want to execute this command
-        execute_command = Confirm.ask(
+        execute_command = confirm_user(
             f"\n[bold yellow]Execute this FFmpeg command for task {i}?[/bold yellow]",
             default=True,
         )
@@ -397,7 +396,7 @@ Task type: {task.task_type.value}
                 console.print(f"[red]❌ Task {i} execution failed[/red]")
 
                 # Ask if user wants to continue with remaining tasks
-                continue_plan = Confirm.ask(
+                continue_plan = confirm_user(
                     "\n[bold red]Continue with remaining tasks despite this failure?[/bold red]",
                     default=False,
                 )
@@ -429,17 +428,17 @@ def _display_result(output):
     console.print("\n[bold cyan]📋 FFmpeg Command (copy-ready):[/bold cyan]")
     console.print(f"[dim]{'─' * 60}[/dim]")
     # Print command with no formatting at all for easy copying
-    print(output.command)
+    console.print(output.command, highlight=False)
     console.print(f"[dim]{'─' * 60}[/dim]")
 
     # Then show additional details in a formatted way
     console.print("\n[bold yellow]📝 Explanation:[/bold yellow]")
     # Print explanation with no formatting for easy copying if needed
-    print(output.explanation)
+    console.print(output.explanation, highlight=False)
 
     if output.filters_used:
         console.print("\n[bold magenta]🔧 Filters Used:[/bold magenta]")
-        print(", ".join(output.filters_used))
+        console.print(", ".join(output.filters_used), highlight=False)
 
 
 # Legacy main function for backwards compatibility

@@ -1,169 +1,101 @@
-from pydantic_evals import Case, Dataset
+from deepeval.dataset import EvaluationDataset, Golden
+from deepeval.metrics import GEval
+from deepeval.test_case import LLMTestCaseParams
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Test cases for overlay agent functionality
 
-case1 = Case(
-    name='static_overlay_basic',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add a logo overlay at position 10,10',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'overlay=10:10',
-        '-y'
-    ],
-    metadata={'difficulty': 'easy', 'effect_type': 'static_overlay'}
+static_overlay_basic = Golden(
+    input='Add a logo overlay at position 10,10, pinwi.png',
+    additional_metadata={
+        'name': 'static_overlay_basic',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'easy', 
+        'effect_type': 'static_overlay'
+    }
 )
 
-case2 = Case(
-    name='timed_overlay',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add overlay that appears between 5 and 15 seconds',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        "enable='between(t,5,15)'",
-        '-y'
-    ],
-    metadata={'difficulty': 'medium', 'effect_type': 'timed_overlay'}
+timed_overlay = Golden(
+    input='Add overlay that appears between 5 and 15 seconds, pinwi.png',
+    additional_metadata={
+        'name': 'timed_overlay',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'medium', 
+        'effect_type': 'timed_overlay'
+    }
 )
 
-case3 = Case(
-    name='moving_overlay',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add overlay that moves horizontally from left to right',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'overlay=',
-        '+t*',
-        '-y'
-    ],
-    metadata={'difficulty': 'medium', 'effect_type': 'moving_overlay'}
+moving_overlay = Golden(
+    input='Add overlay that moves horizontally from left to right, pinwi.png',
+    additional_metadata={
+        'name': 'moving_overlay',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'medium', 
+        'effect_type': 'moving_overlay'
+    }
 )
 
-case4 = Case(
-    name='fade_overlay',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add overlay with fade-in effect',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        "alpha='min(1,t/2)'",
-        '-y'
-    ],
-    metadata={'difficulty': 'medium', 'effect_type': 'fade_overlay'}
+fade_overlay = Golden(
+    input='Add overlay with fade-in effect, pinwi.png',
+    additional_metadata={
+        'name': 'fade_overlay',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'medium', 
+        'effect_type': 'fade_overlay'
+    }
 )
 
-case5 = Case(
-    name='corner_positioned_overlay',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add overlay in bottom-right corner with 10px padding',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'overlay=W-w-10:H-h-10',
-        '-y'
-    ],
-    metadata={'difficulty': 'easy', 'effect_type': 'positioned_overlay'}
+corner_positioned_overlay = Golden(
+    input='Add overlay in bottom-right corner with 10px padding',
+    additional_metadata={
+        'name': 'corner_positioned_overlay',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'easy', 
+        'effect_type': 'positioned_overlay'
+    }
 )
 
-case6 = Case(
-    name='zoom_effect',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4',
-        'request': 'Add zoom effect that zooms in from 1x to 2x between 5 and 10 seconds',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'zoompan=z=',
-        "enable='between(on,",
-        '-y'
-    ],
-    metadata={'difficulty': 'hard', 'effect_type': 'zoom'}
+zoom_effect = Golden(
+    input='Add zoom effect that zooms in from 1x to 2x between 5 and 10 seconds',
+    additional_metadata={
+        'name': 'zoom_effect',
+        'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'hard', 
+        'effect_type': 'zoom'
+    }
 )
 
-case7 = Case(
-    name='preserve_existing_filters',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -vf scale=1920:1080,fps=30 -c:v libx264 output.mp4',
-        'request': 'Add static overlay at top-left corner',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'scale=1920:1080',
-        'fps=30',
-        'overlay=',
-        '-y'
-    ],
-    metadata={'difficulty': 'medium', 'effect_type': 'preserve_filters'}
+preserve_existing_filters = Golden(
+    input='Add static overlay at top-left corner, pinwi.png',
+    additional_metadata={
+        'name': 'preserve_existing_filters',
+        'current_command': 'ffmpeg -i test.mp4 -vf scale=1920:1080,fps=30 -c:v libx264 output.mp4',
+        'video_path': 'test.mp4',
+        'difficulty': 'medium', 
+        'effect_type': 'preserve_filters'
+    }
 )
 
-case8 = Case(
-    name='complex_command_with_audio',
-    inputs={
-        'current_command': 'ffmpeg -i input.mp4 -i audio.mp3 -map 0:v -map 1:a -c:v libx264 -c:a aac output.mp4',
-        'request': 'Add watermark overlay in center',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=[
-        'ffmpeg',
-        '-filter_complex',
-        'overlay=',
-        '-map',
-        '-c:a aac',
-        '-y'
-    ],
-    metadata={'difficulty': 'hard', 'effect_type': 'complex_mapping'}
-)
 
-# Validation test cases
-validation_case1 = Case(
-    name='invalid_command_validation',
-    inputs={
-        'current_command': 'not_ffmpeg -i input.mp4 output.mp4',
-        'request': 'Add overlay',
-        'video_path': '/path/to/input.mp4'
-    },
-    expected_output_contains=['ffmpeg'],
-    metadata={'difficulty': 'easy', 'validation': True}
-)
-
-validation_case2 = Case(
-    name='missing_input_validation',
-    inputs={
-        'current_command': 'ffmpeg -i -c:v libx264 output.mp4',
-        'request': 'Add overlay',
-        'video_path': '/path/to/input.mp4'
-    },
-    should_retry=True,
-    metadata={'difficulty': 'medium', 'validation': True}
+# Create evaluation metric - single comprehensive LLM judge
+llm_judge = GEval(
+    name="FFmpeg Effects Evaluation",
+    criteria="Evaluate if the FFmpeg command correctly implements the requested effect. Check for: 1) Correct overlay syntax, 2) Valid FFmpeg command structure, 3) Appropriate filter usage for the effect type",
+    evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+    threshold=0.7,
+    
 )
 
 # Create dataset with all test cases
-dataset = Dataset(cases=[
-    case1, case2, case3, case4, case5, case6, case7, case8,
-    validation_case1, validation_case2
+dataset = EvaluationDataset(goldens=[
+    static_overlay_basic, timed_overlay, moving_overlay, fade_overlay, 
+    corner_positioned_overlay, zoom_effect, preserve_existing_filters,
 ])
-
-# Export for easy import
-__all__ = ['dataset', 'case1', 'case2', 'case3', 'case4', 'case5', 'case6', 'case7', 'case8', 'validation_case1', 'validation_case2']

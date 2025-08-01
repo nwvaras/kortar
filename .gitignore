@@ -12,3 +12,5 @@ __pycache__/
 *.m4a
 *.m4b
 *.srt
+*.log
+.deepeval/
