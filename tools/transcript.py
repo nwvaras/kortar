@@ -17,7 +17,7 @@ logger = get_logger("kortar.tools.transcript")
 load_dotenv()
 
 translate_agent = Agent(
-    "openai:gpt-4.1-mini",
+    "anthropic:claude-3-5-haiku-20241022",
     output_type=str,
     system_prompt="""You are a language translator specialized in SRT subtitle files. 
 
@@ -138,9 +138,7 @@ async def transcript_video(
         ]
 
         try:
-            subprocess.run(
-                ffmpeg_cmd, capture_output=True, text=True, check=True
-            )
+            subprocess.run(ffmpeg_cmd, capture_output=True, text=True, check=True)
             logger.info("Audio extraction completed successfully")
             update_task(extraction_task, description="Audio extraction complete")
         except subprocess.CalledProcessError as e:

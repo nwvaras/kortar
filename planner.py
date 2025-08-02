@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from uuid import UUID, uuid4
+from uuid import uuid4
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from typing import List, Optional
@@ -32,7 +32,7 @@ class Task(BaseModel):
     Each task is atomic and can be executed independently with the main agent.
     """
 
-    id: UUID = Field(
+    id: str = Field(
         description="Unique identifier for the task",
         default_factory=lambda: uuid4().hex,
     )
@@ -89,7 +89,7 @@ class PlannerDeps:
 
 # Planner agent for task decomposition
 planner_agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-sonnet-4-20250514",
     output_type=ExecutionPlan,
     system_prompt="""
     You are an expert video editing workflow planner. Your job is to analyze user requests for video editing and break them down into clear, goal-oriented tasks that define WHAT needs to be accomplished, not HOW to accomplish it.
@@ -219,7 +219,7 @@ async def plan_video_editing(
     plan = await planner_agent.run(
         user_request, deps=deps, message_history=plan_history
     )
-    return plan
+    return plan.output
 
 
 def print_execution_plan(plan: ExecutionPlan) -> None:

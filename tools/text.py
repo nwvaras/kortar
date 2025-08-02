@@ -6,7 +6,7 @@ logger = get_logger("kortar.tools.text")
 
 # Specialized text agent
 text_agent = Agent(
-    "openai:gpt-4o-mini",
+    "anthropic:claude-3-5-haiku-20241022",
     output_type=str,
     system_prompt="""
     You are a text overlay specialist. You modify FFmpeg commands to add text overlays, captions, and timed text.

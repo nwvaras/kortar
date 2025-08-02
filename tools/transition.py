@@ -6,7 +6,7 @@ logger = get_logger("kortar.tools.transition")
 
 # Specialized transition agent
 transition_agent = Agent(
-    "openai:gpt-4o-mini",
+    "anthropic:claude-3-5-haiku-20241022",
     output_type=str,
     system_prompt="""
     You are a video transition specialist. You modify FFmpeg commands to add transitions, concatenations, and video arrangements.

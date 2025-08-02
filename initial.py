@@ -355,7 +355,6 @@ async def _execute_plan(plan: ExecutionPlan, history: list) -> list:
     console.print(f"\n[bold blue]🎬 Executing Plan: {plan.description}[/bold blue]")
     console.print(f"[dim]Total tasks: {len(plan.tasks)}[/dim]\n")
 
-
     for i, task in enumerate(plan.tasks, 1):
         console.print(
             f"[bold yellow]Task {i}/{len(plan.tasks)}: {task.name}[/bold yellow]"

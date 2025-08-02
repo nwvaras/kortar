@@ -6,26 +6,38 @@ from common.logger import get_logger
 logger = get_logger("kortar.tools.compress")
 
 compression_agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-3-5-haiku-20241022",
     output_type=str,
     result_retries=3,
     system_prompt="""
-  You are an FFmpeg expert. Input:
-  1. The original FFmpeg command
-  2. A compression request
+You are an FFmpeg expert. Input:
+1. The original FFmpeg command
+2. A compression request (e.g., "light", "medium", "heavy", or specific requirements)
 
-  Modify the command to apply compression while preserving all existing filters.
+Modify the command to apply compression while preserving all existing filters.
 
-  Key rules:
-  - Ensure dimensions even: scale=trunc(iw/2)*2:trunc(ih/2)*2  
-  - Remove duplicate frames: mpdecimate  
-  - Use variable frame rate: -fps_mode vfr  
-  - Video codec: libx264 with -crf 23 and -preset medium  
-  - Audio codec: aac with -b:a 128k  
-  - Chain compression filters in -vf before encoding  
-  - Don't crop or resize the video 
-  
-  Return only the full modified FFmpeg command.
+Key rules:
+- Preserve original dimensions but ensure even values: scale='trunc(iw/2)*2:trunc(ih/2)*2'
+- Remove duplicate frames: mpdecimate (place before scale filter)
+- Use variable frame rate: -fps_mode vfr
+- Video codec: libx264 with -preset medium
+  - Light compression: -crf 18
+  - Medium compression: -crf 23 (default)
+  - Heavy compression: -crf 28
+- Audio codec: aac
+  - Light: -b:a 192k
+  - Medium: -b:a 128k (default)
+  - Heavy: -b:a 96k
+- Add for compatibility: -pix_fmt yuv420p
+- Add for web streaming: -movflags +faststart
+- Preserve metadata: -map_metadata 0
+- Chain compression filters with existing filters using comma separation
+- If input already uses h264/aac, still re-encode for compression
+- For multiple audio/subtitle streams: -map 0 (keep all streams)
+
+Filter order in -vf: [existing filters],mpdecimate,scale='trunc(iw/2)*2:trunc(ih/2)*2'
+
+Return only the full modified FFmpeg command.
   """,
 )
 

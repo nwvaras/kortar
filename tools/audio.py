@@ -6,7 +6,7 @@ logger = get_logger("kortar.tools.audio")
 
 # Specialized audio agent
 audio_agent = Agent(
-    "openai:gpt-4o-mini",
+    "anthropic:claude-3-5-haiku-20241022",
     output_type=str,
     system_prompt="""
     You are an audio processing specialist. You modify FFmpeg commands to add audio effects like mixing, fading, and filtering.
