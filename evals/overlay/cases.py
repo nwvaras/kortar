@@ -52,7 +52,7 @@ fade_overlay = Golden(
 )
 
 corner_positioned_overlay = Golden(
-    input='Add overlay in bottom-right corner with 10px padding',
+    input='Add overlay in bottom-right corner with 10px padding, use pinwi.png',
     additional_metadata={
         'name': 'corner_positioned_overlay',
         'current_command': 'ffmpeg -i test.mp4 -c:v libx264 -crf 23 output.mp4',

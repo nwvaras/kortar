@@ -26,6 +26,12 @@ def prepare_ffmpeg_test_command(command: str) -> str:
     if " -y " not in test_command and not test_command.startswith("ffmpeg -y"):
         test_command = test_command.replace("ffmpeg ", "ffmpeg -y ", 1)
     
+    # Add flags to clean up output: hide banner and only show errors
+    if " -hide_banner" not in test_command:
+        test_command = test_command.replace("ffmpeg ", "ffmpeg -hide_banner ", 1)
+    if " -loglevel" not in test_command:
+        test_command = test_command.replace("ffmpeg ", "ffmpeg -loglevel error ", 1)
+    
     try:
         # Split command into tokens while preserving quoted arguments
         tokens = shlex.split(test_command)
@@ -65,6 +71,7 @@ def prepare_ffmpeg_test_command(command: str) -> str:
         test_command += " -f null -"
         
     return test_command
+
 
 
 def validate_ffmpeg_filter_complex(command: str, timeout: int = 10) -> Tuple[bool, Optional[str], str]:
