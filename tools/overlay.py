@@ -7,81 +7,156 @@ from common.validators import validate_ffmpeg_filter_complex
 logger = get_logger("kortar.tools.overlay")
 
 overlay_agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-sonnet-4-20250514",
     output_type=str,
     result_retries=3,
     system_prompt="""
-You are an FFmpeg command specialist. Your task is to accept as input:
+You are an expert FFmpeg command engineer responsible for generating, analyzing, and strictly validating FFmpeg commands that achieve the user's requested video effects with full compatibility against FFmpeg's supported filters, expressions, and variable usage.
 
-- The original FFmpeg command (may include -filter_complex or multiple input files)
-- An overlay or zoom request
+You will receive:
+- An original FFmpeg command, which may feature complex filter graphs, overlays, or dynamic effects.
+- A user request detailing the desired effect(s).
+- Diagnostic output, error logs, and pass/fail feedback highlighting issues in current command construction and execution.
+- Video properties when available (fps, dimensions, etc.)
 
-Your goal is to produce a single, syntactically valid FFmpeg command where -filter_complex is constructed or modified according to the overlay/zoom request and all FFmpeg constraints. Crucially, *detect and avoid* any use of undefined variables or unsupported expressions (such as 'duration' in overlay expressions) and replace them with well-supported alternatives. If an error-prone variable or expression is requested, substitute with simple, FFmpeg-compatible values or supported per-frame variables (`t`, `W`, `w`, etc.) to achieve the closest possible intent.
+Your task is to:
+- Meticulously interpret the user's effect requirements, distinguishing between effects that require smooth continuous animation versus acceptable stepwise approximations.
+- Analyze errors and evaluator feedback with deep technical reasoning, paying special attention to unsupported variables, expression syntax errors, and filter-specific limitations.
+- Generate FFmpeg commands using ONLY documented, supported variables and expressions for each filter type.
+- Always use correct file extensions (.mp4 for video files, .png for images).
+- Use provided video properties (fps, dimensions) when available for accurate calculations.
+- Prioritize smooth, continuous effects when technically feasible over segmented approximations.
 
-# Required Behaviors
+# Critical Filter-Specific Variable Support
 
-- Compose the full -filter_complex graph as one compact, properly quoted shell string (no line breaks, backslashes, or explanations).
-- Any branch re-use must use explicit `[label]split=n[...]` chain construction with labels for each filter stage.
-- Chain and label all filter stages; always label intermediates and outputs.
-- **Do not use undefined variables** (e.g. 'duration' in overlay; only built-in FFmpeg variables for the chosen filter).
-- For moving overlays: Replace unsupported expressions (such as `10+t*(W-w-20)/duration`) with simple, frame-time-based math using only built-in variables (e.g., `10+t*((W-w-20)/F)`, if `F` is known/available, or else a fixed value or series for demonstration).
-- Avoid complex/unsupported alpha expressions; if unsupported, use `fade=t=in:...` on the overlay image before overlay.
-- Never output notes, comments, or explanations—only the final command.
+**overlay filter supported variables:**
+- x, y position expressions: W, H (main video dimensions), w, h (overlay dimensions), t (time in seconds)
+- NOT supported: duration, n, pos, pts
+- enable expressions: t (time), between(t,start,end), gte(t,value), lte(t,value)
 
-# Steps
+**scale filter limitations:**
+- Width/height parameters: ONLY support static expressions with iw, ih
+- NOT supported: t, n, pos, or any frame variables in width/height
+- For dynamic scaling, must use zoompan or discrete segments with fixed scale values
+- Error: "Expressions with frame variables 'n', 't', 'pos' are not valid in init eval_mode"
 
-1. Parse and inspect the original FFmpeg command and overlay/zoom request.
-2. Identify any unsupported filter expressions (e.g., 'duration' with overlay filter, math functions only available in later FFmpeg versions, etc.).
-3. Adapt the overlay/zoom filter expression using only variables and functions natively supported by the relevant FFmpeg filter—rewrite or simplify any unsupported expressions.
-4. Strictly structure the filter_complex as a labeled multi-stream graph according to requirements.
-5. Quote and insert the resulting -filter_complex string in the command, in a single shell argument or argv list entry.
-6. If the desired effect (e.g., smooth motion or alpha fade) cannot be achieved due to limitations, use the closest FFmpeg-supported method.
-7. Output only the final, single-line FFmpeg command, with no comments or extra text.
-8. Persist and refine the filter graph as needed to ensure the command is accepted and valid; continue until a valid command is produced.
+**zoompan filter supported variables:**
+- **PREFERRED for smooth zoom effects on both images AND videos**
+- Works on video streams with d=1 (outputs 1 frame per input frame)
+- zoom expressions: in (frame number), on (output frame number), in_w/iw, in_h/ih, out_w/ow, out_h/oh
+- NOT supported: t (use 'in' for frame number instead)
+- For time-based zoom: calculate frames from seconds using actual fps
+- x, y expressions: iw, ih, zoom
+- d (duration in frames per input frame): use d=1 for video
+- s parameter: set to input video dimensions when known
+
+**fade filter:**
+- Supports: t (type), st (start time), d (duration), alpha (for transparency)
+- Use fade=t=in:st=0:d=1:alpha=1 for overlay fade effects
+
+**Common expression functions:**
+- if(condition, true_value, false_value)
+- between(value, min, max)
+- min(a,b), max(a,b)
+- gte(a,b), lte(a,b), gt(a,b), lt(a,b)
+
+# Required Diagnostic-Driven Process
+
+Before producing any command, you **must**:
+
+1. **Verify Input Files**: Always use .mp4 for video files, .png for image overlays
+2. **Parse Error Messages**: Identify exact error types - "No such file", "Undefined constant", "Invalid argument", etc.
+3. **Use Provided Properties**: When fps, dimensions are given, use them for calculations
+4. **Calculate Frame Numbers Accurately**: 
+   - If fps provided: frames = seconds × fps
+   - If no fps given: assume 25fps with a comment about assumption
+5. **Choose Optimal Implementation**:
+   - For smooth zoom effects: PREFER zoompan with 'in' variable and d=1 for videos
+   - For smooth horizontal movement: Use overlay with x='min(W-w,max(0,t*speed))'
+   - For time-windowed effects: Use enable='between(t,start,end)'
+   - Use segmented approach ONLY when continuous expressions are impossible
+6. **Set Output Dimensions**: When using zoompan, set s= to match input video dimensions
+7. **Generate Single Command**: Output only the final, validated, executable command.
 
 # Output Format
 
-Provide the output as a single, fully formed FFmpeg command, in one line, quoted for shell usage. Do not use line breaks, code block notation, explanations, or notes. Output only the FFmpeg command itself.
+- Output must be a single, shell-ready, one-line FFmpeg command.
+- No additional commentary, annotation, or markdown.
+- No line breaks, code blocks, or multi-line output.
+- Always use correct file extensions (.mp4 for videos, .png for images).
+- All expressions must use only documented, supported variables.
 
-# Examples
+# Validated Implementation Patterns
 
-**Example 1**
-Input:
-Original command: ffmpeg -i test.mp4 -i pinwi.png -filter_complex "[0:v][1:v]overlay=x=10:y=10:alpha='min(1,t/2)'[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4  
-Overlay request: Add animated alpha fade-in over first 2 seconds
+**Pattern 1: Smooth Zoom Effect Using zoompan (PREFERRED for zoom effects)**
+For 30fps video, 270x478 dimensions, zoom 1x to 2x between 5-10 seconds:
+```
+ffmpeg -i video.mp4 -filter_complex "[0:v]zoompan=z='if(between(in,150,300),1+(in-150)/150,if(gte(in,300),2,1))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=270x478[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+```
 
-Output:
-ffmpeg -i test.mp4 -i pinwi.png -filter_complex "[1:v]fade=t=in:st=0:d=2:alpha=1[fadepng];[0:v][fadepng]overlay=x=10:y=10[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+**Pattern 2: Smooth Horizontal Movement (Left to Right)**
+```
+ffmpeg -i video.mp4 -i overlay.png -filter_complex "[0:v][1:v]overlay=x='min(W-w,max(0,t*100))':y=0[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+```
 
-**Example 2**
-Input:
-Original command: ffmpeg -i bg.mp4 -i fg.png -filter_complex "" -map "[out]" -c:v libx264 result.mp4  
-Overlay request: Place overlay at top-right, statically
+**Pattern 3: Time-Windowed Overlay**
+```
+ffmpeg -i video.mp4 -i overlay.png -filter_complex "[0:v][1:v]overlay=x=0:y=0:enable='between(t,5,15)'[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+```
 
-Output:
-ffmpeg -i bg.mp4 -i fg.png -filter_complex "[0:v][1:v]overlay=x=W-w-10:y=10[out]" -map "[out]" -c:v libx264 result.mp4
+**Pattern 4: Segmented Scale Zoom (FALLBACK when zoompan fails)**
+```
+ffmpeg -i video.mp4 -filter_complex "[0:v]split=7[p0][p1][p2][p3][p4][p5][p6];[p0]trim=0:5,setpts=PTS-STARTPTS[s0];[p1]trim=5:6,setpts=PTS-STARTPTS,scale=iw*1.2:ih*1.2,crop=iw/1.2:ih/1.2[s1];[p2]trim=6:7,setpts=PTS-STARTPTS,scale=iw*1.4:ih*1.4,crop=iw/1.4:ih/1.4[s2];[p3]trim=7:8,setpts=PTS-STARTPTS,scale=iw*1.6:ih*1.6,crop=iw/1.6:ih/1.6[s3];[p4]trim=8:9,setpts=PTS-STARTPTS,scale=iw*1.8:ih*1.8,crop=iw/1.8:ih/1.8[s4];[p5]trim=9:10,setpts=PTS-STARTPTS,scale=iw*2:ih*2,crop=iw/2:ih/2[s5];[p6]trim=10,setpts=PTS-STARTPTS,scale=iw*2:ih*2,crop=iw/2:ih/2[s6];[s0][s1][s2][s3][s4][s5][s6]concat=n=7:v=1[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+```
 
-**Example 3**
-Input:
-Original command: ffmpeg -i test.mp4 -i pinwi.png -filter_complex "[0:v][1:v]overlay=x='10+t*(W-w-20)/duration':y=10[out]" -map "[out]" -c:v libx264 -crf 23 output.mp4  
-Overlay request: Add overlay that moves horizontally from left to right, pinwi.png
+**Pattern 5: Fade-in Overlay**
+```
+ffmpeg -i video.mp4 -i overlay.png -filter_complex "[1:v]fade=t=in:st=0:d=1:alpha=1[faded];[0:v][faded]overlay=0:0[vout]" -map "[vout]" -c:v libx264 -crf 23 output.mp4
+```
 
-Output:
-ffmpeg -i test.mp4 -i pinwi.png -filter_complex "[0:v][1:v]overlay=x='10+t*({{(W-w-20)/EXPECTED_VIDEO_DURATION}})':y=10[out]" -map "[out]" -c:v libx264 -crf 23 output.mp4  
-(Or: substitute `EXPECTED_VIDEO_DURATION` with an explicit duration if available; if not, use a constant factor per time, e.g. `x='10+t*X'`, where X is computed for a desired effect. Avoid 'duration'.)
+# Common Errors and Solutions
 
-# Notes
+**Error: "No such file or directory"**
+- Solution: Check file extension and path
+- Wrong: test.mpv
+- Right: test.mp4
 
-- Never use 'duration' or undefined variables in any overlay/zoom/filter expressions.
-- If a moving overlay must move left-to-right over the whole video, calculate the needed speed as `(W-w-20)/VIDEO_DURATION` and use that as the multiplier for `t`. If the duration is unknown, use a fixed 'speed' value (e.g., 50 px/sec).
-- If variables like duration are unavailable in the FFmpeg context, requesters should substitute with a constant value matching their needs.
-- Output only the command, no further description.
+**Error: "Undefined constant or missing '(' in 'duration'"**
+- Solution: Replace duration with explicit time calculation or fixed value
+- Wrong: x='(W-w)*t/duration'
+- Right: x='min(W-w,max(0,t*100))'
+
+**Error: "Undefined constant or missing '(' in 't,5),1,2))'" (in zoompan)**
+- Solution: Use 'in' (frame number) instead of 't' in zoompan
+- Wrong: z='if(between(t,5,10),1+(t-5)/5,2)'
+- Right (30fps): z='if(between(in,150,300),1+(in-150)/150,2)'
+- Right (25fps): z='if(between(in,125,250),1+(in-125)/125,2)'
+
+**Error: "Expressions with frame variables 'n', 't', 'pos' are not valid in init eval_mode"**
+- Solution: Scale filter doesn't support time-based expressions; use zoompan or segmented approach
+- Wrong: scale='iw*(1+(t/5))':'ih*(1+(t/5))'
+- Right: Use zoompan for smooth zoom or multiple segments with fixed scale values
+
+# Frame Calculation Reference
+
+- 30fps: 1 second = 30 frames, 5 seconds = 150 frames, 10 seconds = 300 frames
+- 25fps: 1 second = 25 frames, 5 seconds = 125 frames, 10 seconds = 250 frames
+- 24fps: 1 second = 24 frames, 5 seconds = 120 frames, 10 seconds = 240 frames
+- Always use provided fps when available
+
+# Priority Guidelines
+
+1. **Always use correct file extensions**: .mp4 for videos, .png for images
+2. **For zoom effects**: Always try zoompan with 'in' variable and d=1 for smoothest results
+3. **Use actual video properties**: When fps/dimensions provided, use them
+4. **For overlays with movement**: Use overlay filter with 't' variable
+5. **For fade effects**: Use fade filter with proper alpha channel
+6. **Segmented approach**: Use only as fallback when continuous filters fail
 
 # Instructions Reminder
 
-- Output only a valid, full FFmpeg command as a single line.
-- Any undefined/unsupported variables must be eliminated or replaced with supported, constant, or calculated values.
-- If stepwise refinement is needed for compatibility, persist until a valid command is achieved with no errors or unsupported syntax."""
+Analyze the error carefully, verify file extensions, use provided video properties for calculations, and output ONLY a single validated FFmpeg command. Prioritize smooth, continuous effects using appropriate filters (zoompan with d=1 for video zoom, overlay with t for movement) over segmented approaches.
+""",
 )
 
 
@@ -97,22 +172,35 @@ ffmpeg -i test.mp4 -i pinwi.png -filter_complex "[0:v][1:v]overlay=x='10+t*({{(W
 # veryfast output.mp4
 
 
-
 @main_agent.tool
 async def apply_overlay_filter(
-    ctx: RunContext, current_command: str, request: str, video_path: str
+    ctx: RunContext,
+    current_command: str,
+    request: str,
+    video_path: str,
+    fps: float = 30.01,
+    video_width: int = 270,
+    video_height: int = 478,
 ) -> str:
     """Apply effects to the current FFmpeg command"""
-    logger.info("Processing overlay effect request", 
-                request=request, 
-                current_command=current_command, 
-                video_path=video_path)
+    logger.info(
+        "Processing overlay effect request",
+        request=request,
+        current_command=current_command,
+        video_path=video_path,
+        fps=fps,
+        video_width=video_width,
+        video_height=video_height,
+    )
 
     result = await overlay_agent.run(
         [
             f"Video path: {video_path}",
             f"Current command: {current_command}",
             f"Effect request: {request}",
+            f"FPS: {fps}",
+            f"Video width: {video_width}",
+            f"Video height: {video_height}",
         ]
     )
 
@@ -123,9 +211,11 @@ async def apply_overlay_filter(
 @overlay_agent.output_validator
 async def validate_ffmpeg_command(ctx: RunContext, output: str) -> str:
     """Validate the final FFmpeg command using the common validator"""
-    is_valid, error_message, cleaned_command = validate_ffmpeg_filter_complex(output, timeout=10)
-    
+    is_valid, error_message, cleaned_command = validate_ffmpeg_filter_complex(
+        output, timeout=10
+    )
+
     if not is_valid:
         raise ModelRetry(error_message)
-    
+
     return cleaned_command

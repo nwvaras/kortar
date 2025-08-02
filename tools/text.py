@@ -31,7 +31,11 @@ text_agent = Agent(
 @main_agent.tool
 async def apply_text_filter(ctx: RunContext, current_command: str, request: str) -> str:
     """Apply text overlays to the current FFmpeg command"""
-    logger.info("Processing text filter request", request=request, current_command=current_command)
+    logger.info(
+        "Processing text filter request",
+        request=request,
+        current_command=current_command,
+    )
 
     result = await text_agent.run(
         [f"Current command: {current_command}", f"Text request: {request}"]

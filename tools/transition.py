@@ -46,7 +46,11 @@ async def apply_transition_filter(
 ) -> str:
     """Apply transition effects to the current FFmpeg command. The request should say if the video has or doesn't have audio
     Send the aspect ratio of the parts of the video, if you want to concatenate them."""
-    logger.info("Processing transition filter request", request=request, current_command=current_command)
+    logger.info(
+        "Processing transition filter request",
+        request=request,
+        current_command=current_command,
+    )
 
     result = await transition_agent.run(
         [f"Current command: {current_command}", f"Transition request: {request}"]

@@ -33,7 +33,11 @@ async def apply_audio_filter(
     ctx: RunContext, current_command: str, request: str
 ) -> str:
     """Apply audio effects to the current FFmpeg command"""
-    logger.info("Processing audio filter request", request=request, current_command=current_command)
+    logger.info(
+        "Processing audio filter request",
+        request=request,
+        current_command=current_command,
+    )
 
     result = await audio_agent.run(
         [f"Current command: {current_command}", f"Audio request: {request}"]

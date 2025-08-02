@@ -79,10 +79,12 @@ async def transcript_video(
     If translate is True, the SRT file will be translated to the target language.
     If extra_context is provided, it will be added to the transcription. Use the extra context to define who is speaker 0, 1, 2, etc.
     """
-    logger.info("Starting video transcription", 
-                video_path=video_path, 
-                language=language, 
-                extra_context=extra_context)
+    logger.info(
+        "Starting video transcription",
+        video_path=video_path,
+        language=language,
+        extra_context=extra_context,
+    )
 
     try:
         # Initialize Deepgram client
@@ -115,7 +117,7 @@ async def transcript_video(
         # Extract audio from video using ffmpeg
         logger.info("Extracting audio from video")
         extraction_task = add_task("Extracting audio from video...")
-        
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
             temp_audio_path = temp_audio.name
 
@@ -136,7 +138,7 @@ async def transcript_video(
         ]
 
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ffmpeg_cmd, capture_output=True, text=True, check=True
             )
             logger.info("Audio extraction completed successfully")

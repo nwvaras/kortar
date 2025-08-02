@@ -3,9 +3,11 @@ from main import main_agent
 from common.logger import get_logger
 from rich.console import Console
 from common.progress import prompt_user
+
 console = Console()
 
 logger = get_logger("kortar.tools.user_input")
+
 
 @main_agent.tool
 async def ask_user_for_clarification(

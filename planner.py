@@ -25,6 +25,7 @@ class TaskType(str, Enum):
     ZOOM = "zoom"
     COMPRESS = "compress"
 
+
 class Task(BaseModel):
     """
     Represents a single video editing task in the execution pipeline.
@@ -201,7 +202,9 @@ planner_agent = Agent(
 )
 
 
-async def plan_video_editing(user_request: str, plan_history: List[str]) -> ExecutionPlan:
+async def plan_video_editing(
+    user_request: str, plan_history: List[str]
+) -> ExecutionPlan:
     """
     Plan a video editing workflow based on user request.
 
@@ -213,7 +216,9 @@ async def plan_video_editing(user_request: str, plan_history: List[str]) -> Exec
         ExecutionPlan with ordered tasks for the video editing workflow
     """
     deps = PlannerDeps(user_request=user_request)
-    plan = await planner_agent.run(user_request, deps=deps, message_history=plan_history)
+    plan = await planner_agent.run(
+        user_request, deps=deps, message_history=plan_history
+    )
     return plan
 
 

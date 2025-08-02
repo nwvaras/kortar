@@ -6,6 +6,7 @@ from common.logger import get_logger
 
 logger = get_logger("kortar.tools.analysis")
 
+
 @main_agent.tool
 async def initial_video_analysis(ctx: RunContext, video_path: str) -> str:
     """Run ffprobe to analyze video technical characteristics"""

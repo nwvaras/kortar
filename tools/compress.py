@@ -29,15 +29,18 @@ compression_agent = Agent(
   """,
 )
 
+
 @main_agent.tool
 async def apply_compression(
     ctx: RunContext, current_command: str, request: str, video_path: str
 ) -> str:
     """Apply compression to the current FFmpeg command"""
-    logger.info("Processing compression request", 
-                request=request, 
-                current_command=current_command, 
-                video_path=video_path)
+    logger.info(
+        "Processing compression request",
+        request=request,
+        current_command=current_command,
+        video_path=video_path,
+    )
 
     result = await compression_agent.run(
         [
@@ -138,12 +141,17 @@ async def validate_ffmpeg_command(ctx: RunContext, output: str) -> str:
                 f"FFmpeg command validation failed with error: {error_msg}"
             )
 
-        logger.info("Command validation successful", message="FFmpeg executed without errors")
+        logger.info(
+            "Command validation successful", message="FFmpeg executed without errors"
+        )
         return output
 
     except subprocess.TimeoutExpired:
         # If command runs for 3 seconds without crashing or failing, consider it validated
-        logger.info("Command validation successful", message="FFmpeg ran for 3 seconds without errors - command validated")
+        logger.info(
+            "Command validation successful",
+            message="FFmpeg ran for 3 seconds without errors - command validated",
+        )
         return output
     except Exception as e:
         logger.error("Command validation failed", error=str(e))

@@ -31,7 +31,11 @@ sync_agent = Agent(
 @main_agent.tool
 async def apply_sync_filter(ctx: RunContext, current_command: str, request: str) -> str:
     """Apply synchronization adjustments to the current FFmpeg command"""
-    logger.info("Processing sync filter request", request=request, current_command=current_command)
+    logger.info(
+        "Processing sync filter request",
+        request=request,
+        current_command=current_command,
+    )
 
     result = await sync_agent.run(
         [f"Current command: {current_command}", f"Sync request: {request}"]
@@ -134,7 +138,9 @@ async def validate_ffmpeg_command(ctx: RunContext, output: str) -> str:
                 "Command should use -filter_complex for the specified filters."
             )
 
-        logger.info("Command validation successful", message="FFmpeg executed without errors")
+        logger.info(
+            "Command validation successful", message="FFmpeg executed without errors"
+        )
         return output
 
     except subprocess.TimeoutExpired:

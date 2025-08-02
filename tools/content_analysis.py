@@ -7,6 +7,7 @@ from common.logger import get_logger
 
 logger = get_logger("kortar.tools.content_analysis")
 
+
 @main_agent.tool
 async def analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
     """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
@@ -26,6 +27,7 @@ async def analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
     """
     return await wrapped_analyze_video(ctx, video_path, query)
 
+
 @planner_agent.tool
 async def analyze_video_plan(ctx: RunContext, video_path: str, query: str) -> str:
     """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
@@ -34,9 +36,9 @@ async def analyze_video_plan(ctx: RunContext, video_path: str, query: str) -> st
     """
     return await wrapped_analyze_video(ctx, video_path, query)
 
+
 async def wrapped_analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
     logger.info("Starting video content analysis", video_path=video_path, query=query)
-
 
     gemini_agent = Agent(
         "google-gla:gemini-2.5-flash",

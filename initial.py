@@ -5,7 +5,6 @@ import subprocess
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm
 from common.logger import get_logger
 from common.progress import progress_manager, add_task, update_task, confirm_user
 
@@ -89,7 +88,6 @@ def edit_video(
         full_request += f" save as {output}"
 
     asyncio.run(_process_edit_request(full_request, dry_run))
-
 
 
 async def _interactive_session():
@@ -189,7 +187,7 @@ async def _interactive_session():
                 task = add_task("Creating execution plan...")
 
                 try:
-                    plan_response = await plan_video_editing(user_input,plan_history)
+                    plan_response = await plan_video_editing(user_input, plan_history)
                     plan = plan_response.output
                     plan_history = plan_response.all_messages()
                     update_task(task, description="Plan created!")
@@ -256,7 +254,7 @@ async def _analyze_video(video_path: str, technical: bool, content: bool, query:
         if technical:
             console.print("[blue]🔍 Running technical analysis...[/blue]")
             with progress_manager.progress_context():
-                task = add_task("Analyzing with ffprobe...")
+                add_task("Analyzing with ffprobe...")
                 tech_result = await initial_video_analysis(None, video_path)
 
             console.print("\n[bold blue]🔍 Technical Analysis:[/bold blue]")
@@ -274,7 +272,7 @@ async def _analyze_video(video_path: str, technical: bool, content: bool, query:
             )
 
             with progress_manager.progress_context():
-                task = add_task("Analyzing with AI...")
+                add_task("Analyzing with AI...")
                 content_result = await analyze_video(None, video_path, content_query)
 
             console.print("\n[bold green]🎯 Content Analysis:[/bold green]")
@@ -293,7 +291,7 @@ async def _process_edit_request(request: str, dry_run: bool):
 
     try:
         with progress_manager.progress_context():
-            task = add_task("Generating FFmpeg command...")
+            add_task("Generating FFmpeg command...")
             result = await main_agent.run(request)
 
         _display_result(result.output)
@@ -310,6 +308,7 @@ async def _process_edit_request(request: str, dry_run: bool):
 
     except Exception as e:
         console.print(f"[red]❌ Edit request failed: {str(e)}[/red]")
+
 
 async def _run_ffmpeg_command(command: str) -> bool:
     """Execute an FFmpeg command and return success status"""
@@ -356,7 +355,6 @@ async def _execute_plan(plan: ExecutionPlan, history: list) -> list:
     console.print(f"\n[bold blue]🎬 Executing Plan: {plan.description}[/bold blue]")
     console.print(f"[dim]Total tasks: {len(plan.tasks)}[/dim]\n")
 
-    current_video_path = plan.input_video
 
     for i, task in enumerate(plan.tasks, 1):
         console.print(
@@ -406,12 +404,12 @@ Task type: {task.task_type.value}
             else:
                 # Update current video path for next task
                 if task.output_file_path:
-                    current_video_path = task.output_file_path
+                    pass
         else:
             console.print(f"[yellow]⏭️  Task {i} command skipped by user[/yellow]")
             # Still update the path as if the command was executed (for planning continuity)
             if task.output_file_path:
-                current_video_path = task.output_file_path
+                pass
 
         console.print(f"[green]✅ Task {i} completed[/green]\n")
 
