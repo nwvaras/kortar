@@ -5,6 +5,7 @@ from pydantic_ai import Agent
 from typing import List, Optional
 from enum import Enum
 from dotenv import load_dotenv
+from pydantic_ai.agent import AgentRunResult
 
 
 # Load environment variables
@@ -204,7 +205,7 @@ planner_agent = Agent(
 
 async def plan_video_editing(
     user_request: str, plan_history: List[str]
-) -> ExecutionPlan:
+) -> AgentRunResult[ExecutionPlan]:
     """
     Plan a video editing workflow based on user request.
 
@@ -219,7 +220,7 @@ async def plan_video_editing(
     plan = await planner_agent.run(
         user_request, deps=deps, message_history=plan_history
     )
-    return plan.output
+    return plan
 
 
 def print_execution_plan(plan: ExecutionPlan) -> None:

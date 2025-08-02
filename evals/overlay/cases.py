@@ -84,6 +84,16 @@ preserve_existing_filters = Golden(
     },
 )
 
+chromatic_aberration = Golden(
+    input="Add chromatic aberration effect",
+    additional_metadata={
+        "name": "chromatic_aberration",
+        "current_command": "ffmpeg -i test.mp4 -vf scale=1920:1080,fps=30 -c:v libx264 output.mp4",
+        "video_path": "test.mp4",
+        "difficulty": "medium",
+    },
+)
+
 
 # Create evaluation metric - single comprehensive LLM judge
 llm_judge = GEval(
@@ -103,5 +113,6 @@ dataset = EvaluationDataset(
         corner_positioned_overlay,
         zoom_effect,
         preserve_existing_filters,
+        chromatic_aberration,
     ]
 )
