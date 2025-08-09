@@ -92,7 +92,7 @@ Use `--dry-run` to skip execution and only print the command.
 
 ### Available tools (used by the agent)
 - `initial_video_analysis` (ffprobe)
-- `apply_overlay_filter` (overlays, watermarks, picture-in-picture)
+- `apply_video_edit` (overlays, watermarks, picture-in-picture)
 - `apply_text_filter` (text overlays, timed text)
 - `apply_transition_filter` (concat, crossfade, split-join, stacks)
 - `apply_sync_filter` (audio/video sync fixes)

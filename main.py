@@ -35,12 +35,8 @@ main_agent = Agent(
     - initial_video_analysis: Get video details (length, size, etc.)
     - analyze_video: Look at video content to understand what's in it
     - get_width_height: Get exact video dimensions
-    - apply_overlay_filter: Add watermarks, logos, or picture-in-picture
-    - apply_audio_filter: Change audio (volume, fading, etc.)
-    - apply_transition_filter: Add transitions between clips
+    - apply_video_edit: Add watermarks, logos, or any cut/trim/overlay
     - apply_text_filter: Add text or subtitles
-    - apply_sync_filter: Fix audio/video sync issues
-    - detect_object_bounds: Find where objects are in the video for cropping
     - transcript_video: Create subtitles from speech in video
     - apply_compression: Make video file smaller
 

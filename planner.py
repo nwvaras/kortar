@@ -14,16 +14,8 @@ load_dotenv()
 
 class TaskType(str, Enum):
     """Type of video editing task"""
-
-    AUDIO_PROCESSING = "audio_processing"
-    OVERLAY = "overlay"
     TEXT = "text"
-    TRANSITION = "transition"
-    SYNC = "sync"
-    CROP = "crop"
-    TRIM = "trim"
-    COMPOSITE = "composite"
-    ZOOM = "zoom"
+    EDIT = "edit"
     COMPRESS = "compress"
 
 

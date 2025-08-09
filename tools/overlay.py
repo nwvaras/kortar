@@ -96,7 +96,7 @@ OUTPUT ONLY THE FFMPEG COMMAND - NO EXPLANATIONS
 
 
 @main_agent.tool
-async def apply_overlay_filter(
+async def apply_video_edit(
     ctx: RunContext,
     current_command: str,
     request: str,
