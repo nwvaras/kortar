@@ -1,6 +1,6 @@
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.exceptions import ModelRetry
-from main import main_agent
+from video_assistant import main_agent
 from common.logger import get_logger
 from common.validators import validate_ffmpeg_filter_complex
 

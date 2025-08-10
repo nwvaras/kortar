@@ -1,5 +1,5 @@
 from pydantic_ai import RunContext
-from main import main_agent
+from video_assistant import main_agent
 from common.logger import get_logger
 from common.user_clarification import get_user_clarification
 from tools.content_analysis import gemini_agent

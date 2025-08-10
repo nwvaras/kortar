@@ -1,4 +1,4 @@
-from main import main_agent
+from video_assistant import main_agent
 from planner import plan_video_editing, print_execution_plan, ExecutionPlan
 import asyncio
 import subprocess

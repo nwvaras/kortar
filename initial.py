@@ -1,4 +1,4 @@
-from main import main_agent
+from video_assistant import main_agent
 from planner import plan_video_editing, print_execution_plan, ExecutionPlan
 import asyncio
 import subprocess
@@ -73,21 +73,15 @@ def analyze_video_file(
 @app.command("edit")
 def edit_video(
     request: str = typer.Argument(..., help="Video editing request"),
-    video_path: str = typer.Option(
-        "", "--video", "-v", help="Video file path (if not in request)"
-    ),
-    output: str = typer.Option("", "--output", "-o", help="Output file name"),
+    video: str = typer.Option(None, "--video", help="Path to the input video file"),
+    output: str = typer.Option(None, "--output", help="Path to the output video file"),
     dry_run: bool = typer.Option(
         False, "--dry-run", "-d", help="Show command without executing"
     ),
 ):
     """✨ Apply video editing effects based on natural language request"""
 
-    full_request = f"{request} {video_path}".strip() if video_path else request
-    if output:
-        full_request += f" save as {output}"
-
-    asyncio.run(_process_edit_request(full_request, dry_run))
+    asyncio.run(_process_edit_request(request, video, output, dry_run))
 
 
 async def _interactive_session():
@@ -285,14 +279,21 @@ async def _analyze_video(video_path: str, technical: bool, content: bool, query:
         console.print(f"[red]❌ Analysis failed: {str(e)}[/red]")
 
 
-async def _process_edit_request(request: str, dry_run: bool):
+async def _process_edit_request(request: str, video: str = None, output: str = None, dry_run: bool = False):
     """Internal edit request handler"""
     console.print(f"[LOG] Processing edit request: {request}", style="dim")
+    
+    # Build the full request with video and output information
+    full_request = request
+    if video:
+        full_request += f" using video file: {video}"
+    if output:
+        full_request += f" saving output to: {output}"
 
     try:
         with progress_manager.progress_context():
             add_task("Generating FFmpeg command...")
-            result = await main_agent.run(request)
+            result = await main_agent.run(full_request)
 
         _display_result(result.output)
 
@@ -300,11 +301,7 @@ async def _process_edit_request(request: str, dry_run: bool):
             console.print("[yellow]📋 Dry run mode - command not executed[/yellow]")
         else:
             if confirm_user("Execute this command?"):
-                console.print("[green]🚀 Executing command...[/green]")
-                # Here you could add actual command execution
-                console.print(
-                    "[yellow]⚠️ Command execution not implemented yet[/yellow]"
-                )
+                await _run_ffmpeg_command(result.output.command)
 
     except Exception as e:
         console.print(f"[red]❌ Edit request failed: {str(e)}[/red]")

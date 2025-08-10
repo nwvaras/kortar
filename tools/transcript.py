@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from pydantic_ai import Agent, RunContext, ModelRetry
-from main import main_agent
+from video_assistant import main_agent
 from deepgram import DeepgramClient, PrerecordedOptions
 from deepgram_captions import DeepgramConverter, srt as deepgram_srt
 import srt

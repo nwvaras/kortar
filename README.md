@@ -67,7 +67,7 @@ When importing `tools`, the app logs which features are enabled based on these k
 Start the guided, multi-line interactive mode:
 
 ```bash
-python start.py interactive
+uv run initial.py interactive
 ```
 
 Tips shown in the UI: type your first line, continue on next lines, press Enter on an empty line to submit. Use `help`, `clear`, or `quit` anytime.
@@ -75,19 +75,19 @@ Tips shown in the UI: type your first line, continue on next lines, press Enter 
 ### Analyze a video
 - Technical (ffprobe):
 ```bash
-python start.py analyze path/to/video.mp4 --technical
+uv run initial.py analyze path/to/video.mp4 --technical
 ```
 
 - Content (Gemini, requires `GEMINI_API_KEY`):
 ```bash
-python start.py analyze path/to/video.mp4 --content --query "Find empty moments and key highlights"
+uv run initial.py analyze path/to/video.mp4 --content --query "Find empty moments and key highlights"
 ```
 
 ### Ask for edits (command generation)
 Generate an FFmpeg command from a natural language request:
 
 ```bash
-python start.py edit "Add a logo bottom-right and fade out audio in last 2s" --video path/to/video.mp4 --output out.mp4
+uv run initial.py edit "Add a logo bottom-right using pudu.png, then add a fad in and fad out" --video video_3_compressed.mp4 --output out.mp4 
 ```
 
 Use `--dry-run` to skip execution and only print the command.

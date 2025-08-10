@@ -1,7 +1,7 @@
 import subprocess
 import json
 from pydantic_ai import RunContext
-from main import main_agent
+from video_assistant import main_agent
 from common.logger import get_logger
 
 logger = get_logger("kortar.tools.analysis")
