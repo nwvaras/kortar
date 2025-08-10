@@ -73,17 +73,15 @@ async def transcript_video(
     output_srt_path: str = None,
     translate: bool = False,
     language: str = "en",
-    extra_context: str = None,
 ) -> str:
     """Create an SRT subtitle file from a video using Deepgram transcription.
     If translate is True, the SRT file will be translated to the target language.
-    If extra_context is provided, it will be added to the transcription. Use the extra context to define who is speaker 0, 1, 2, etc.
+    If extra_context is provided, it will be added to the transcription. Use the extra context to define who is speaker 0, 1, 2, etc
     """
     logger.info(
         "Starting video transcription",
         video_path=video_path,
         language=language,
-        extra_context=extra_context,
     )
 
     try:
@@ -181,7 +179,6 @@ async def transcript_video(
                     [
                         f"SRT content to translate:\n{srt_content}",
                         f"Target language: {language}",
-                        f"Extra context: {extra_context}",
                     ]
                 )
                 srt_content = translation_result.output

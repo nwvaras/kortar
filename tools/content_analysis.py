@@ -1,6 +1,9 @@
 import httpx
+import re
 from pathlib import Path
+from pydantic.main import BaseModel
 from pydantic_ai import Agent, BinaryContent, RunContext
+from pydantic_ai.exceptions import ModelRetry
 from main import main_agent
 from planner import planner_agent
 from common.logger import get_logger
@@ -8,48 +11,36 @@ from common.logger import get_logger
 logger = get_logger("kortar.tools.content_analysis")
 
 
-@main_agent.tool
-async def analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
-    """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
-
-    Common types of analysis you can ask:
-    - Empty spaces or moments where nothing happens
-    - Parts that can be cut
-    - Segments that need improvements
-    - Key moments/highlights
-    - Abrupt transitions
-    - Audio/video issues
-    - Repetitive moments
-    - Long pauses
-    - Silent segments
-    - Low activity periods
-    - Detect elements in the video
-    """
-    return await wrapped_analyze_video(ctx, video_path, query)
+class VideoInterval(BaseModel):
+    start_time: str
+    end_time: str
+    description: str
+    action: str
+    suggestion: str
 
 
-@planner_agent.tool
-async def analyze_video_plan(ctx: RunContext, video_path: str, query: str) -> str:
-    """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
-    This is used to plan the video editing process.
-    Only use it when the task will need to know the content of the video.
-    """
-    return await wrapped_analyze_video(ctx, video_path, query)
+class VideoContentAnalysis(BaseModel):
+    intervals: list[VideoInterval]
 
 
-async def wrapped_analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
-    logger.info("Starting video content analysis", video_path=video_path, query=query)
-
-    gemini_agent = Agent(
-        "google-gla:gemini-2.5-flash",
-        system_prompt="""
+gemini_agent = Agent(
+    "google-gla:gemini-2.5-flash",
+    output_type=VideoContentAnalysis,
+    system_prompt="""
         You are a professional video editor analyzing content based on specific queries. Your task is to identify time intervals in the video that are relevant to the user's query and provide actionable insights.
+
+        ## Tools Available:
+        - ask_user_for_clarification_gemini: Ask the user for clarification when needed.
 
         For each relevant interval you identify, provide:
         - Exact start and end times (use MM:SS format for videos under 60 minutes, HH:MM:SS for longer)
         - Clear description of what happens in that segment and why it's relevant to the query
         - If the user ask for detect an object, provide an approximate position of the object in the frame.
+        - When returning the interval, the start_time and end_time must include the event. If the user ask for an event, remember that the interval must include the event.
         - Specific action suggestion: "trim", "enhance", "keep", "add_transition", "adjust_audio", "add_effect", or "observation"
+        
+        ## IMPORTANT:
+        - If the user ask for ms/milliseconds accuracy, use the analyze_detailed tool to get more accurate results.
         
         <examples>
         <example>
@@ -109,16 +100,82 @@ async def wrapped_analyze_video(ctx: RunContext, video_path: str, query: str) ->
         *   **Action:** **observation**
         *   **Suggestion:** Final appearance of the ball before it's completely out of view.
         </example>
+        
         </examples>
-        Be precise with timing and practical with suggestions. Only include intervals that directly answer the user's query.
+        Notes:
+        - Be precise with timing and practical with suggestions. Only include intervals that directly answer the user's query.
+        - If you are asked to identify a speaker, be sure that you received that information or you can extrapolate it from the context (like a presentation or text)
         """,
-    )
+)
+
+
+@gemini_agent.output_validator
+def validate_video_content_analysis(
+    output: VideoContentAnalysis,
+) -> VideoContentAnalysis:
+    # Enforce MM:SS format (e.g., 00:00) for start_time and end_time
+    # Accept MM:SS or MM:SS.mmm (milliseconds optional)
+    logger.info("Validating video content analysis", output=output)
+    mm_ss_pattern = re.compile(r"^\d{2}:\d{2}(?:\.\d{1,3})?$")
+
+    for index, interval in enumerate(output.intervals):
+        if not mm_ss_pattern.fullmatch(interval.start_time or ""):
+            raise ModelRetry(
+                f"interval[{index}].start_time must be in MM:SS or MM:SS.mmm format (e.g., 00:00.000)"
+            )
+        if not mm_ss_pattern.fullmatch(interval.end_time or ""):
+            raise ModelRetry(
+                f"interval[{index}].end_time must be in MM:SS or MM:SS.mmm format (e.g., 00:00.000)"
+            )
+
+    return output
+
+
+@main_agent.tool
+async def analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
+    """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
+
+    Common types of analysis you can ask:
+    - Empty spaces or moments where nothing happens
+    - Parts that can be cut
+    - Segments that need improvements
+    - Key moments/highlights
+    - Abrupt transitions
+    - Audio/video issues
+    - Repetitive moments
+    - Long pauses
+    - Silent segments
+    - Low activity periods
+    - Detect elements in the video
+
+    Args:
+        video_path: Path to the video file
+        query: Analysis query
+    """
+    return await wrapped_analyze_video(ctx, video_path, query)
+
+
+@planner_agent.tool
+async def analyze_video_plan(ctx: RunContext, video_path: str, query: str) -> str:
+    """Analyze video based on a specific query, identifying relevant intervals and actionable insights.
+    This is used to plan the video editing process. Dont ask for ms accuracy.
+    Only use it when the task will need to know the content of the video.
+    """
+    return await wrapped_analyze_video(ctx, video_path, query)
+
+
+async def wrapped_analyze_video(ctx: RunContext, video_path: str, query: str) -> str:
+    logger.info("Starting video content analysis", video_path=video_path, query=query)
 
     video_content = await load_video_as_binary(video_path)
 
-    result = await gemini_agent.run([video_content, f"Query: {query}"])
-    print(result.output)
-    return result.output
+    result = await gemini_agent.run(
+        [video_content, f"Video path: {video_path}\nQuery: {query}"]
+    )
+
+    analysis = result.output
+
+    return analysis.model_dump_json()
 
 
 async def load_video_as_binary(video_path: str) -> BinaryContent:

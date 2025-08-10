@@ -4,9 +4,9 @@ from main import main_agent
 from common.logger import get_logger
 from common.validators import validate_ffmpeg_filter_complex
 
-logger = get_logger("kortar.tools.overlay")
+logger = get_logger("kortar.tools.effects")
 
-overlay_agent = Agent(
+efects_agent = Agent(
     "anthropic:claude-sonnet-4-20250514",
     output_type=str,
     result_retries=3,
@@ -94,7 +94,6 @@ OUTPUT ONLY THE FFMPEG COMMAND - NO EXPLANATIONS
 )
 
 
-
 @main_agent.tool
 async def apply_video_edit(
     ctx: RunContext,
@@ -116,7 +115,7 @@ async def apply_video_edit(
         video_height=video_height,
     )
 
-    result = await overlay_agent.run(
+    result = await efects_agent.run(
         [
             f"Video path: {video_path}",
             f"Current command: {current_command}",
@@ -131,7 +130,7 @@ async def apply_video_edit(
     return result.output
 
 
-@overlay_agent.output_validator
+@efects_agent.output_validator
 async def validate_ffmpeg_command(ctx: RunContext, output: str) -> str:
     """Validate the final FFmpeg command using the common validator"""
     is_valid, error_message, cleaned_command = validate_ffmpeg_filter_complex(

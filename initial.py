@@ -7,12 +7,12 @@ from rich.console import Console
 from rich.panel import Panel
 from common.logger import get_logger
 from common.progress import progress_manager, add_task, update_task, confirm_user
+from tools.analysis import initial_video_analysis
+from tools.content_analysis import analyze_video
 
 logger = get_logger("kortar.initial")
 
 # Import all tools to register them with main_agent
-from tools.analysis import initial_video_analysis
-from tools.content_analysis import analyze_video
 
 
 # Initialize rich console for better CLI experience
@@ -412,9 +412,7 @@ Task type: {task.task_type.value}
 
         console.print(f"[green]✅ Task {i} completed[/green]\n")
 
-    console.print(
-        f"[bold green]🎉 All tasks completed! Final output: {plan.output_video}[/bold green]"
-    )
+    console.print("[bold green]🎉 All tasks completed! ")
     return history
 
 

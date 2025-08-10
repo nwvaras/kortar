@@ -13,6 +13,8 @@
 ## kortar
 An AI-powered FFmpeg assistant that plans and generates video editing commands from natural language. It can analyze videos, plan editing tasks, and build runnable FFmpeg commands—optionally using AI services for content analysis and transcription.
 
+NOTE: This proyect is in absolute alpha. Full of bugs and weird behaviors, but we expect to improve it
+
 ### Key features
 - Plan-first agent that breaks requests into goal-oriented tasks
 - Generates validated FFmpeg commands for overlays, text, transitions, sync fixes, and more

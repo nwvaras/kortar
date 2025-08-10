@@ -2,25 +2,26 @@ from dotenv import load_dotenv
 from deepeval import evaluate
 from deepeval.test_case import LLMTestCase
 
-from evals.overlay.cases import dataset, llm_judge
-from evals.overlay.evaluators import FFmpegExecutionEvaluator
-from tools.overlay import overlay_agent
+from evals.effects.cases import dataset, llm_judge
+from evals.effects.evaluators import FFmpegExecutionEvaluator
+from tools.effects import efects_agent
+import asyncio
 
 load_dotenv()
 
 
-async def run_overlay_agent(
+async def run_efects_agent(
     query: str,
     current_command: str = "ffmpeg -i test.mp4 output.mp4",
     video_path: str = "test.mp4",
 ):
     """Run the overlay agent and return the generated FFmpeg command"""
-    overlay_agent._output_validators = []
+    efects_agent._output_validators = []
     # TODO: get fps, video width, video height from the actuall video
     fps = 30.01
     video_width = 270
     video_height = 478
-    result = await overlay_agent.run(
+    result = await efects_agent.run(
         [
             f"Video path: {video_path}",
             f"Current command: {current_command}",
@@ -31,9 +32,6 @@ async def run_overlay_agent(
         ]
     )
     return result.output
-
-
-import asyncio
 
 
 async def main():
@@ -52,7 +50,7 @@ async def main():
         video_path = golden.additional_metadata.get("video_path", "test.mp4")
 
         # Run the overlay agent
-        actual_output = await run_overlay_agent(
+        actual_output = await run_efects_agent(
             golden.input, current_command, video_path
         )
 

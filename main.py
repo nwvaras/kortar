@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from typing import List
@@ -10,6 +9,7 @@ logger = get_logger("kortar.main")
 # Load environment variables from .env file
 load_dotenv()
 logger.info("Environment variables loaded")
+
 
 class FFmpegCommand(BaseModel):
     command: str
@@ -34,16 +34,16 @@ main_agent = Agent(
     - ask_user_for_clarification: Ask for missing information
     - initial_video_analysis: Get video details (length, size, etc.)
     - analyze_video: Look at video content to understand what's in it
-    - get_width_height: Get exact video dimensions
     - apply_video_edit: Add watermarks, logos, or any cut/trim/overlay
     - apply_text_filter: Add text or subtitles
-    - transcript_video: Create subtitles from speech in video
     - apply_compression: Make video file smaller
+    - transcript_video: Transcribe the video to text, for future use
 
     ## Important:
     - When using any tool, provide ALL the information it needs (like time intervals, positions, etc.)
     - You don't need to worry about technical details - just pass the user's requirements to the tools
     - Start with a basic command and build on it with each tool
+    - If the user request milliseconds accuracy, run the analyze_video without asking ms accuracy.
 
     ## When explaining results:
     Show what was done at each step, for example:

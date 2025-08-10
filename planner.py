@@ -14,6 +14,7 @@ load_dotenv()
 
 class TaskType(str, Enum):
     """Type of video editing task"""
+
     TEXT = "text"
     EDIT = "edit"
     COMPRESS = "compress"
@@ -88,7 +89,7 @@ planner_agent = Agent(
     You are an expert video editing workflow planner. Your job is to analyze user requests for video editing and break them down into clear, goal-oriented tasks that define WHAT needs to be accomplished, not HOW to accomplish it.
 
     ## Tools:
-    - analyze_video: Analyze the video if it is necessary to understand the video in order to divide the tasks.
+    - analyze_video: Analyze the video if it is really necessary to understand the video in order to divide the tasks. Think this carefully (e.g divide the video in the important parts).
 
     ## Your Process:
     1. Identify all the goals and outcomes needed
@@ -101,6 +102,8 @@ planner_agent = Agent(
 
     ### File Pipeline Principle:
     **CRITICAL**: Every task must produce exactly ONE output file that is either:
+    **CRITICAL**: Call **ONLY** the analyze_video_tool if you need that to separate the plan in different tasks (e.g divide the video in the important parts)
+    
     1. **The final output** - The completed video that fulfills the user's request
     2. **Input for next task** - An intermediate file that the next task will process
 
@@ -183,7 +186,6 @@ planner_agent = Agent(
     - **User-Centric**: Frame goals in terms of user needs and video purpose
     - **Quality-Oriented**: Emphasize professional results and smooth execution
     - **Only Include Requested**: Do not add watermarks, text overlays, audio smoothing, quality improvements, or other enhancements unless specifically asked for by the user
-
     Generate a comprehensive execution plan with properly ordered, goal-focused tasks that clearly define what needs to be accomplished to meet the user's video editing objectives. 
     
     **DEFAULT APPROACH**: Create minimal, focused workflows that only include the specific transformations requested by the user. Avoid adding quality improvements, smoothing operations, or enhancements unless explicitly asked for.

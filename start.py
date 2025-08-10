@@ -301,9 +301,7 @@ Task type: {task.task_type.value}
 
         console.print(f"[green]✅ Task {i} completed[/green]\n")
 
-    console.print(
-        f"[bold green]🎉 All tasks completed! Final output: {plan.output_video}[/bold green]"
-    )
+    console.print("[bold green]🎉 All tasks completed!")
     return history
 
 
