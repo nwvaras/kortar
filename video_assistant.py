@@ -4,7 +4,7 @@ from typing import List
 from dotenv import load_dotenv
 from common.logger import get_logger
 
-logger = get_logger("kortar.main")
+logger = get_logger("kortar.video_assistant")
 
 # Load environment variables from .env file
 load_dotenv()

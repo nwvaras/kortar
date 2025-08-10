@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic.main import BaseModel
 from pydantic_ai import Agent, BinaryContent, RunContext
 from pydantic_ai.exceptions import ModelRetry
-from main import main_agent
+from video_assistant import main_agent
 from planner import planner_agent
 from common.logger import get_logger
 
